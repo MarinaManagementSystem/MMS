@@ -110,28 +110,6 @@
 		} else
 		{
 			
-			String loginDateAndTime = session.getAttribute("loginDateAndTime").toString();
-			String userID = session.getAttribute("userID").toString();
-			
-			/*
-			if(request.getParameter("relogin") != null)
-			{
-				String userName = session.getAttribute("userName").toString();
-				String password = session.getAttribute("password").toString();
-				session.invalidate();
-				response.sendRedirect("login.jsp?username="+userName+"&password="+password);
-				return;
-			}
-			*/
-			
-			
-			DatabaseSettings dbSettings = new DatabaseSettings();
-			
-			Class.forName(dbSettings.getClassForName());
-			Connection connection = DriverManager.getConnection(dbSettings.getDBName(), dbSettings.getDBUserName(), dbSettings.getDBPass());
-
-			connection.createStatement().executeUpdate("UPDATE USERS SET LAST_LOGIN='"+loginDateAndTime+"' WHERE USER_ID='"+userID+"'");
-			
 			// session.invalidate() is done in the footer since the <div>'s need it till the end of footer.jsp
 		}
 	

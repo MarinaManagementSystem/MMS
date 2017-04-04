@@ -167,7 +167,7 @@
 			
 			if (password != null && !password.equalsIgnoreCase("")
 					&& userName != null && !userName.equalsIgnoreCase("")) {
-				password = conversionToMD5.md5(password, IPAddress, userName);
+				password = conversionToMD5.md5(userName, IPAddress, password);
 				
 				String connectionString =  
 						"jdbc:sqlserver://marinams.database.windows.net:1433;"  
@@ -204,6 +204,8 @@
 	
 				
 				if (resultSetForLogin!=null && resultSetForLogin.next()) {
+					
+					System.out.println("EGE");
 					session.setAttribute("userName", userName);
 					session.setAttribute("password", password);
 					//session.setAttribute("role", new Integer(resultSetForLogin.getInt("ROLE")));
@@ -241,8 +243,7 @@
 						}
 					}
 					
-					System.out.println("Username: "+session.getAttribute( "userName")+",\nuser ID: "+session.getAttribute( "userID")+",\nrole ID: "+session.getAttribute( "roleId")+",\nname: "+session.getAttribute( "firstName")+",\nlast name: "+session.getAttribute( "lastName")+",\ne-mail address: "+session.getAttribute( "eMailAddress")+",\nphone number: "+session.getAttribute( "phoneNumber"));
-					out.println("Username: "+session.getAttribute( "userName")+",\nuser ID: "+session.getAttribute( "userID")+",\nrole ID: "+session.getAttribute( "roleId")+",\nname: "+session.getAttribute( "firstName")+",\nlast name: "+session.getAttribute( "lastName")+",\ne-mail address: "+session.getAttribute( "eMailAddress")+",\nphone number: "+session.getAttribute( "phoneNumber"));
+					System.out.println("Username: "+session.getAttribute( "userName")+",\nuser ID: "+session.getAttribute( "userId")+",\nrole ID: "+session.getAttribute( "roleId")+",\nname: "+session.getAttribute( "firstName")+",\nlast name: "+session.getAttribute( "lastName")+",\ne-mail address: "+session.getAttribute( "eMailAddress")+",\nphone number: "+session.getAttribute( "phoneNumber"));
 					
 					response.sendRedirect("index.jsp");
 					return;
