@@ -88,7 +88,7 @@
 <!-- / navbar -->
 
 
-<%@ page import="com.environmenttrackingsoftware.conf.*" %>
+<%@ page import="com.marinamanagementsystem.conf.*" %>
 
 
 <!-- header -->
