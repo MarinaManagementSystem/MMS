@@ -73,7 +73,7 @@
 <div id="boxedWrapper" class="snap-content">
 
 <nav class="navbar navbar-default navbar-transparent navbar-fixed-top" style="background-color: black;" role="navigation">
-    <div class="container" style="position: relative; z-index: 100;">
+    <div class="container">
         <div class="navbar-header">
             <button type="button" id="navbar-toggle" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
@@ -84,33 +84,11 @@
             <a class="navbar-brand" href="index.jsp" data-logo="images/ETS-Logo.png"><img src="images/ETS-Logo.png" alt="" title=""></a>
         </div>
         <div class="navbar-collapse collapse">
-            <ul class="nav navbar-nav navbar-right" style="position: relative; z-index: 100;">
-                <li class="active dropdown">
-                    <a href="index.jsp" class="dropdown-toggle" data-toggle="dropdown">Home</a>
-                </li>
-                <li class="dropdown">
-                    <a href="aboutUs.jsp" class="dropdown-toggle" data-toggle="dropdown">About</a>
-                </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reports</a>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a href="queryDatabase.jsp">Query<span>Query the database</span></a></li>
-                        <li><a href="plotGraph.jsp">Graph<span>Plot a graph</span></a></li>
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings</a>
-                    <ul class="dropdown-menu" role="menu">
-                        <li><a href="userSettings.jsp">User Settings<span>Update your profile</span></a></li>
-                        <li><a href="serverSettings.jsp">Server Settings<span>Change mote settings</span></a></li>
-
-                    </ul>
-                </li>
+            <ul class="nav navbar-nav navbar-right">
+	            <li class="active"><a class="dropdown" href="login.jsp">Login</a></li>
+	            <li><a href="login.jsp?username=demo&password=demo">Demo Login</a></li>
+	            <li><a class="dropdown" href="aboutUs.jsp">About</a></li>
                 <li><a class="btn btn-border" style="border-color: #FF9A00; background: #FF9A00; font-size: 14px; font-weight: normal;" href="contactUs.jsp">Contact us!</a></li>
-                <li><a class="btn btn-border" style="border-color: #DF2D1C; background: #DF2D1C; font-size: 14px; font-weight: normal;" href="#" onclick="return askForLogout();">Logout</a></li>
-                <br/>
-                <div align="right">Welcome, <a href="userSettings.jsp"><% //out.print(userName+"."); %></a></div>
-                <br/>
             </ul>
         </div>
     </div>
@@ -161,6 +139,8 @@
 
 
 <%@ page import="com.marinamanagementsystem.conf.*" %>
+<%@ page import="com.microsoft.sqlserver.jdbc.SQLServerDriver" %>
+<%@ page import="java.sql.*" %>
 
 
 <!--  section icon box -->
@@ -170,7 +150,152 @@
  
  	<div class="row">
 	    
+		<jsp:useBean id="conversionToMD5" class="com.marinamanagementsystem.conf.MD5"
+			scope="session" />
+		<jsp:setProperty name="conversionToMD5" property="*" />
+	
+		<%
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Date date = new Date();
+			String currentDateAndTime = dateFormat.format(date); //2014/08/06 15:59:48
+		
+			String warningMessage = "";
+			String warningType = "danger";
+			String userName = request.getParameter("username");
+			String password = request.getParameter("password");
+			String IPAddress = request.getRemoteAddr();
+			
+			if (password != null && !password.equalsIgnoreCase("")
+					&& userName != null && !userName.equalsIgnoreCase("")) {
+				password = conversionToMD5.md5(password, IPAddress, userName);
+				
+				String connectionString =  
+						"jdbc:sqlserver://marinams.database.windows.net:1433;"  
+						+ "database=mms_db;"  
+						+ "user=marinams_admin@marinams;"  
+						+ "password=MMS123*a;"  
+						+ "encrypt=true;"  
+						+ "trustServerCertificate=false;"  
+						+ "hostNameInCertificate=*.database.windows.net;"
+						+ "characterEncoding=utf-8;"
+						+ "loginTimeout=60;";
+						
+				// Declare the JDBC objects.
+				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"); 
+				Connection connection = null;
+			    Statement stmt = null;
+			    ResultSet rs = null;
+				connection = DriverManager.getConnection(connectionString); 
+				
 
+				Statement statementForLogin = connection.createStatement();
+				ResultSet resultSetForLogin=null;
+				
+				CharSequence singleQuote="'", doubleQuote="\"";
+				if(!userName.contains(singleQuote) && !userName.contains(doubleQuote))
+				{
+					resultSetForLogin = statementForLogin
+							.executeQuery("SELECT * FROM DBO.KULLANICI WHERE USER_NAME='"
+									+ userName
+									+ "' AND PASSWORD='"
+									+ password
+									+ "'");
+				}
+	
+				
+				if (resultSetForLogin!=null && resultSetForLogin.next()) {
+					session.setAttribute("userName", userName);
+					session.setAttribute("password", password);
+					//session.setAttribute("role", new Integer(resultSetForLogin.getInt("ROLE")));
+					session.setAttribute("userId", new Integer(resultSetForLogin.getInt("PERSON_ID")));
+					//session.setAttribute("loginDateAndTime", currentDateAndTime);
+					//session.setAttribute("fullName", new String(resultSetForLogin.getString("FULL_NAME")));
+					
+					ResultSet resultSetForPersonInfo = connection.createStatement().executeQuery("SELECT * FROM DBO.PERSON WHERE ID='"+resultSetForLogin.getInt("PERSON_ID")+"'");
+					ResultSet resultSetForRoleInfo = connection.createStatement().executeQuery("SELECT * FROM DBO.PERSON_ROLE WHERE PERSON_ID='"+resultSetForLogin.getInt("PERSON_ID")+"'");
+					
+					if(resultSetForPersonInfo!=null && resultSetForPersonInfo.next())
+					{
+						try
+						{
+							session.setAttribute("firstName", new String(resultSetForPersonInfo.getString("NAME")));
+							session.setAttribute("lastName", new String(resultSetForPersonInfo.getString("SURNAME")));
+							session.setAttribute("eMailAddress", new String(resultSetForPersonInfo.getString("EMAIL")));
+							session.setAttribute("phoneNumber", new String(resultSetForPersonInfo.getString("PHONE_NUMBER")));
+						}
+						catch(SQLException e)
+						{
+							// Do nothing, do not print the exception trace
+						}
+					}
+					
+					if(resultSetForRoleInfo!=null && resultSetForRoleInfo.next())
+					{
+						try
+						{
+							session.setAttribute("roleId", new String(resultSetForRoleInfo.getString("ROLE_ID")));
+						}
+						catch(SQLException e)
+						{
+							// Do nothing, do not print the exception trace
+						}
+					}
+					
+					System.out.println("Username: "+session.getAttribute( "userName")+",\nuser ID: "+session.getAttribute( "userID")+",\nrole ID: "+session.getAttribute( "roleId")+",\nname: "+session.getAttribute( "firstName")+",\nlast name: "+session.getAttribute( "lastName")+",\ne-mail address: "+session.getAttribute( "eMailAddress")+",\nphone number: "+session.getAttribute( "phoneNumber"));
+					out.println("Username: "+session.getAttribute( "userName")+",\nuser ID: "+session.getAttribute( "userID")+",\nrole ID: "+session.getAttribute( "roleId")+",\nname: "+session.getAttribute( "firstName")+",\nlast name: "+session.getAttribute( "lastName")+",\ne-mail address: "+session.getAttribute( "eMailAddress")+",\nphone number: "+session.getAttribute( "phoneNumber"));
+					
+					response.sendRedirect("index.jsp");
+					return;
+					
+					//response.setHeader("Refresh", "0; URL=index.jsp");
+					
+				} else {
+					
+					if(session.getAttribute("isMobile").toString().equalsIgnoreCase("true"))
+					{
+						warningType = "danger";
+						warningMessage = "Your username or password is wrong! Please try again.";
+					}
+					else
+					{
+						warningType = "danger";
+						warningMessage = "Your username or password is wrong!<br>Please try again.";
+					}
+					
+				}
+			} else {
+				// Means that either username or password is empty 
+				warningType = "danger";
+				warningMessage = "";
+			}
+			
+			CharSequence referenceURL="logout";
+			if(request.getHeader("Referer") == null)
+			{
+				warningMessage = "";
+			}
+			else
+			{
+				if(request.getHeader("Referer").contains(referenceURL))
+				{
+					warningType = "success";
+					warningMessage = "You are successfully logged out!";
+				}
+			}
+			
+			if (session.getAttribute("userName") != null
+					&& session.getAttribute("password") != null) {
+				if (((Integer) session.getAttribute("roleId")).intValue() == 1) {
+					response.sendRedirect("index.jsp");
+					return;
+				} else {
+					response.sendRedirect("index.jsp");
+					return;
+				}
+			}
+			
+		
+		%>
 		
 		<!-- To make the whole blue area clickable
 		<a href="login.jsp">
@@ -199,7 +324,7 @@
 							<font style="text-shadow: 0 0 10px #ffffff;">Password:</font>
 						</div>
 						<div class="username-field">
-							<input type="text" name="username" id="username" value="<%  %>" required="" />
+							<input type="text" name="username" id="username" value="<% if(userName!=null) {out.print(userName);} %>" required="" />
 						</div>
 						<div class="password-field">
 							<input type="password" name="password" id="password" required="" />
@@ -208,7 +333,7 @@
 						<div class="forgot-usr-pwd">
 							<font color=red style="text-shadow: 0 0 10px #c61a1a;">
 									<%
-										
+										out.print(warningMessage);
 									%>
 							</font>
 						</div>
@@ -226,8 +351,6 @@
 				    <p>Please enter your username and password to login to ETS.</p>
 				    
 				    <%
-				    
-				    String warningMessage= "", warningType = "";
 				    if(warningMessage != null && !warningMessage.isEmpty())
 				    {
 				    	%>
